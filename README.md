@@ -10,5 +10,12 @@ based on [wordle](https://powerlanguage.co.uk/wordle/) by [josh wardle](https://
 - yarn
 - node 14.18.0
 
+## first-time setup
+```sh
+$ cp data/history.json.example data/history.json
+```
+
 ## to play
-`yarn start`
+```sh
+$ yarn start
+```

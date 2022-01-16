@@ -1,10 +1,14 @@
+import fs from 'fs';
+
 import chalk from 'chalk';
 import prompt from 'prompt';
 
-import words from './data.json';
+import words from './data/words.json';
+import history from './data/history.json';
 
 const ALPHABET = 'abcdefghijklmnopqrstuvwxyz'.split('');
 const VALID_WORDS = words.map(({ word }) => word);
+const PREVIOUS_ROUNDS = history;
 
 const GAME_SETTINGS = {
   maxGuessesPerRound: 6,
@@ -131,31 +135,56 @@ const playRound = async () => {
 };
 
 const printStatistics = () => {
-  const roundsWon = rounds.filter(({ won }) => won);
-
-  const roundsWonPerNumberOfGuesses = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 }
-  roundsWon.forEach((round) => {
-    roundsWonPerNumberOfGuesses[round.guesses.length] += 1;
-  });
-
   printHeader('STATISTICS');
-  console.log(`${roundsWon.length} / ${rounds.length} rounds won\n`);
-  console.log(chalk.underline('Guess Distribution\n'));
-  Object.entries(roundsWonPerNumberOfGuesses).forEach(([numberOfGuesses, roundsWon]) => {
+
+  const roundsWon = rounds.filter(({ won }) => won);
+  const allTimeRoundsWon = [...PREVIOUS_ROUNDS, ...rounds].filter(({ won }) => won);
+  const allTimeGuessDistribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 }
+  allTimeRoundsWon.forEach((round) => {
+    allTimeGuessDistribution[round.guesses.length] += 1;
+  });
+  console.log(`${roundsWon.length} / ${rounds.length} rounds won this game`);
+  console.log(`${allTimeRoundsWon.length} / ${allTimeRoundsWon.length} rounds won all-time\n`);
+  console.log(chalk.underline('guess distribution (all-time)'));
+  Object.entries(allTimeGuessDistribution).forEach(([numberOfGuesses, roundsWon]) => {
     console.log(`${chalk.bold(numberOfGuesses)}: ${roundsWon}`);
   });
 };
 
-const playGame = async () => {
+const saveHistoryAndExit = () => {
+  const data = JSON.stringify([...PREVIOUS_ROUNDS, ...rounds], null, 2);
+  fs.writeFile('data/history.json', data, (err) => {
+    if (err) {
+      throw err;
+    } else {
+      console.log(chalk.blue('\nGame results saved. See you next time!'));
+    }
+    process.exit(0);
+  });
+};
+
+const main = async () => {
   prompt.message = null;
   prompt.start();
 
   printInstructions();
 
-  while (true) {
+  let shouldKeepPlaying = true;
+  while (shouldKeepPlaying) {
     await playRound();
     printStatistics();
+    const { playAgain } = await prompt.get([{
+      description: 'play another round? (y/n)',
+      name: 'playAgain',
+      type: 'string',
+      message: 'Enter "y" for yes and "n" for no',
+      conform: (input) => ['y', 'n'].includes(input),
+      before: (input) => input.toLowerCase()[0],
+    }]);
+    shouldKeepPlaying = playAgain === 'y';
   }
 };
 
-playGame();
+main();
+
+process.on('beforeExit', () => saveHistoryAndExit());
