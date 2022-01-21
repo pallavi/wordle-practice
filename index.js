@@ -110,6 +110,7 @@ const playRound = async () => {
   for (let i = 0; i < GAME_SETTINGS.maxGuessesPerRound; i++) {
     const { guess } = await prompt.get([{
       name: 'guess',
+      description: `guess ${i + 1}`,
       type: 'string',
       message: 'Must be a valid 5-letter word',
       conform: (input) => VALID_WORDS.includes(input.toLowerCase()),
